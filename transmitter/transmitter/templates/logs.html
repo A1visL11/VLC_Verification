@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>進門紀錄</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen px-4 py-6">
+  <div id="confirmModal" class="fixed inset-0 hidden items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-auto space-y-4">
+      <p class="text-gray-800 text-center">確定要刪除這筆紀錄嗎？</p>
+      <div class="flex justify-end space-x-2">
+        <button id="cancelButton" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">取消</button>
+        <button id="confirmButton" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">確認</button>
+      </div>
+    </div>
+  </div>
+  <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow space-y-6">
+    <header class="flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800">進門紀錄</h2>
+      <a href="/members" class="text-blue-600 hover:underline text-sm">← 返回成員管理</a>
+    </header>
+
+    <ul id="logList" class="space-y-3 text-gray-700">
+      <!-- 紀錄項目 -->
+    </ul>
+  </div>
+
+  <script>
+    let pendingDelete = { type: null, id: null };
+
+    async function loadLogs() {
+      const res = await fetch("/api/entry/list");
+      const data = await res.json();
+      const ul = document.getElementById("logList");
+      ul.innerHTML = "";
+      data.logs.forEach(log => {
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center border-b py-2";
+        let content = "";
+        if (log.type === "entry") {
+          content = `<span><span class="font-semibold">${log.name}</span> 於 <span>${log.time}</span> 進入</span>`;
+        } else {
+          content = `<span class="text-red-500"><span class="font-semibold">ERROR</span> 於 <span>${log.time}</span>: ${log.message}</span>`;
+        }
+        li.innerHTML = `
+          <div>${content}</div>
+          <button onclick="deleteLog('${log.type}', ${log.id})" class="text-sm text-red-600 hover:underline">刪除</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function showModal(type, id) {
+      pendingDelete.type = type;
+      pendingDelete.id = id;
+      document.getElementById("confirmModal").classList.remove("hidden");
+      document.getElementById("confirmModal").classList.add("flex");
+    }
+
+    function hideModal() {
+      document.getElementById("confirmModal").classList.add("hidden");
+      document.getElementById("confirmModal").classList.remove("flex");
+      pendingDelete = { type: null, id: null };
+    }
+
+    function deleteLog(type, id) {
+      // 不直接執行 API，先顯示 Modal
+      showModal(type, id);
+    }
+
+    document.getElementById("confirmButton").addEventListener("click", async () => {
+      // 使用 pendingDelete 執行刪除
+      const { type, id } = pendingDelete;
+      const res = await fetch("/api/entry/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: type, id: id })
+      });
+      const result = await res.json();
+      hideModal();
+      if (result.success) {
+        loadLogs();
+      } else {
+        // 如果刪除失敗，可在此顯示錯誤訊息
+        alert("刪除失敗");
+      }
+    });
+
+    document.getElementById("cancelButton").addEventListener("click", () => {
+      hideModal();
+    });
+
+    loadLogs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>傳送 LiFi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-200 flex items-center justify-center h-screen">
+  <div class="bg-white p-8 rounded-xl shadow space-y-6 max-w-md w-full text-center">
+    <h2 class="text-xl font-bold text-gray-700">準備傳送 LiFi 封包</h2>
+    <button id="sendBtn"
+            class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 text-lg">
+      立即傳送
+    </button>
+    <p id="msg" class="text-green-600 mt-4 text-sm text-center"></p>
+  </div>
+
+  <script>
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+      const fid = sessionStorage.getItem("family_id");
+      const mid = sessionStorage.getItem("member_id");
+      const pwd = sessionStorage.getItem("password");
+      const res = await fetch("/api/transmit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fid, mid, password: pwd })
+      });
+      const data = await res.json();
+      const msgElem = document.getElementById("msg");
+      if (data.error) {
+        msgElem.style.color = "red";
+        msgElem.innerText = data.error;
+      } else {
+        msgElem.style.color = "green";
+        msgElem.innerText = data.message || "未知錯誤";
+      }
+    });
+  </script>
+</body>
+</html>

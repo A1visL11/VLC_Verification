@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>選擇家庭成員</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white p-6 rounded-xl shadow space-y-6 w-full max-w-md">
+    <h2 class="text-xl font-bold text-gray-800 text-center">選擇要發送的成員</h2>
+    <form id="selectForm" class="space-y-4">
+      <select id="memberSelect" class="w-full border px-4 py-2 rounded" required></select>
+      <button class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">綁定並前往傳送</button>
+    </form>
+    <p id="msg" class="text-sm text-center text-red-600"></p>
+  </div>
+
+  <script>
+    async function loadMembers() {
+      const res = await fetch("/api/member/list",{credentials:"include", method:"GET"});
+      const data = await res.json();
+      const sel = document.getElementById("memberSelect");
+      if (!res.ok) {
+        document.getElementById("msg").innerText = data.error || "讀取失敗，請重新登入";
+        return;
+      }
+      data.members.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.member_id;
+        opt.textContent = m.name;
+        sel.appendChild(opt);
+      });
+    }
+
+    document.getElementById("selectForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const member_id = document.getElementById("memberSelect").value;
+      sessionStorage.setItem("member_id", member_id);
+      window.location.href = "/transmit";
+    });
+
+    loadMembers();
+  </script>
+</body>
+</html>

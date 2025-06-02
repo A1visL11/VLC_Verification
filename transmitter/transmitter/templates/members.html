@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>家庭成員管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #toast {
+      transition: all 0.4s ease;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen px-4 py-6">
+  <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow space-y-6 relative">
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden absolute top-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded-md text-white bg-blue-600 shadow-md z-10">
+      <span id="toast-text"></span>
+    </div>
+
+    <header class="flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800">家庭成員管理</h2>
+      <a href="/logs" class="text-blue-600 hover:underline text-sm">查看進門紀錄 →</a>
+    </header>
+
+    <form id="addForm" enctype="multipart/form-data" class="space-y-4">
+      <input type="text" name="name" placeholder="輸入成員姓名" required
+             class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input type="file" name="avatar" accept="image/*"
+             class="w-full px-4 py-2 border rounded-md bg-gray-50 text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+      <button type="submit"
+              class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition">
+        新增成員
+      </button>
+    </form>
+
+    <ul id="memberList" class="space-y-3">
+      <!-- 成員列表 -->
+    </ul>
+  </div>
+
+  <script>
+    function showToast(message, color = "bg-blue-600") {
+      const toast = document.getElementById("toast");
+      const text = document.getElementById("toast-text");
+      toast.className = `absolute top-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded-md text-white ${color} shadow-md z-10`;
+      text.innerText = message;
+      toast.classList.remove("hidden");
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 2500);
+    }
+
+    async function loadMembers() {
+      const res = await fetch("/api/member/list");
+      const data = await res.json();
+      const ul = document.getElementById("memberList");
+      ul.innerHTML = "";
+      data.members.forEach(m => {
+        const li = document.createElement("li");
+        li.className = "flex items-center space-x-4";
+        const avatarUrl = `/api/member/avatar/${m.member_id}`;
+        li.innerHTML = `
+          <img src="${avatarUrl}" class="w-12 h-12 rounded-full object-cover border">
+          <span class="text-gray-700 font-medium flex-1">${m.name}</span>
+          <button onclick="deleteMember(${m.member_id})"
+                  class="text-sm text-red-500 hover:underline">刪除</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    async function deleteMember(member_id) {
+      const res = await fetch(`/api/member/delete/${member_id}`, { method: "DELETE" });
+      const d = await res.json();
+      if (res.ok) {
+        showToast(d.message, "bg-red-600");
+        loadMembers();
+      } else {
+        showToast(d.error || "刪除失敗", "bg-gray-600");
+      }
+    }
+
+    document.getElementById("addForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch("/api/member/add", { method: "POST", body: form });
+      const d = await res.json();
+      if (res.ok) {
+        showToast(d.message, "bg-green-600");
+        e.target.reset();
+        loadMembers();
+      } else {
+        showToast(d.error || "新增失敗", "bg-gray-600");
+      }
+    });
+
+    loadMembers();
+  </script>
+</body>
+</html>
